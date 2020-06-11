@@ -1,6 +1,6 @@
 import numpy as np
 import spiceypy as sp
-from ..utc2et import utc2et
+from ...utc2et import utc2et
 from scipy.interpolate import InterpolatedUnivariateSpline
 import os
 import DateTimeTools as TT

@@ -6,6 +6,8 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from ..utc2et import utc2et
 from .. import Globals
 import PyFileIO as pf
+from ..Tools.ListDates import ListDates
+from ..Tools.ContUT import ContUT
 
 lsk_path = Globals.SpicePath + '/lsk/naif0010.tls'
 spk_kernel = Globals.SpicePath + '/bodies/de432s.bsp'
@@ -152,14 +154,14 @@ def SaveCarringtonRotations(Date0=19500101,Date1=20500101):
 	#find the bits where we cross 0
 	n=0
 	for i in range(0,nt-1):
-		print('\rFinding 0s {0}%'.format(100*np.float32((i+1))/nt),end='')
+		print('\rFinding 0s {:6.2f}%'.format(100*np.float32((i+1))/(nt-1)),end='')
 		if lon[i] > 0 and lon[i+1] <= 0:
 			if i == 0:
-				inds = np.array([0,1,2,3])
+				inds = np.array([3,2,1,0])
 			elif i >= nt-2:
-				inds = np.array([nt-4,nt-3,nt-2,nt-1])
+				inds = np.array([nt-1,nt-2,nt-3,nt-4])
 			else:
-				inds = np.arange(4)+i-1
+				inds = np.arange(4)[::-1]+i-1
 			f = InterpolatedUnivariateSpline(lon[inds],et[inds])
 			if n == 0:
 				ets = np.array([f(0.0)],dtype='float64')
@@ -171,14 +173,14 @@ def SaveCarringtonRotations(Date0=19500101,Date1=20500101):
 	
 	
 	#store them in a file
-	f=open(outfile,'wb')
+	f=open(outfile,'w')
 	for i in range(0,n):
 		print('\rSaving time {0} of {1}'.format(i+1,n),end='')
 		s = sp.timout(ets[i],"YYYYMMDD HRMNSC ::RND",32)
 		date,ut = s.split()
 		date = np.int32(date)
 		ut = TT.HHMMtoDec(np.int32(ut),ss=True)
-		utc = ContUT(date,ut)
+		utc = ContUT(np.array([date]),np.array([ut]))[0]
 		outstr = '{:08d} {:f} {:f}\n'.format(date,ut,utc)
 		f.write(outstr)
 	f.close()

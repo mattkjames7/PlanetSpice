@@ -45,5 +45,5 @@ def OrbitHCI(Date=20150101):
 		Date in format yyyymmdd
 	
 	'''
-	x,y,z = VenusOrbitHAE()
+	x,y,z = OrbitHAE()
 	return HAEtoHCI(Date,0.0,x,y,z)

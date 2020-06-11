@@ -1,10 +1,11 @@
 import numpy as np
 import spiceypy as sp
-from ..utc2et import utc2et
+from ...utc2et import utc2et
 from scipy.interpolate import InterpolatedUnivariateSpline
 import os
 import DateTimeTools as TT
-from ..Tools.FileSearch import FileSearch
+from ...Tools.FileSearch import FileSearch
+from ... import Globals
 
 lsk_path = Globals.SpicePath + '/lsk/naif0010.tls'
 spk_kernel = Globals.SpicePath + '/bodies/de432s.bsp'

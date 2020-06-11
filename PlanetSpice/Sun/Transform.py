@@ -3,6 +3,7 @@ import spiceypy as sp
 from ..utc2et import utc2et
 import DateTimeTools as TT
 import os
+from .. import Globals
 
 lsk_path = Globals.SpicePath + '/lsk/naif0010.tls'
 spk_kernel = Globals.SpicePath + '/bodies/de432s.bsp'
@@ -15,10 +16,10 @@ def HCItoIAU_SUN(Date,ut,xi,yi,zi):
 	'''
 	
 	#create some arrays
-	n = np.size(ut)
+	n = np.size(xi)
 
 	if np.size(ut) == 1:
-		ut = np.array([ut])
+		ut = np.zeros(n,dtype='float32') + ut
 	if np.size(xi) == 1:
 		xi = np.array([xi])
 		yi = np.array([yi])
@@ -70,10 +71,10 @@ def HAEtoHCI(Date,ut,xi,yi,zi):
 	
 	
 	#create some arrays
-	n = np.size(ut)
+	n = np.size(xi)
 
 	if np.size(ut) == 1:
-		ut = np.array([ut])
+		ut = np.zeros(n,dtype='float32') + ut
 	if np.size(xi) == 1:
 		xi = np.array([xi])
 		yi = np.array([yi])

@@ -2,6 +2,7 @@ import numpy as np
 import spiceypy as sp
 import DateTimeTools as TT
 import os
+from . import Globals
 
 lsk_path = Globals.SpicePath + '/lsk/naif0010.tls'
 
@@ -24,6 +25,10 @@ def utc2et(Date,ut):
 	
 	#split up the dates and times
 	n = np.size(ut)
+	if np.size(Date) == 1:
+		Date = np.zeros(n,dtype='int32') + Date
+	if np.size(ut) == 1:
+		ut = np.zeros(n,dtype='float32') + ut
 	yr = Date//10000
 	mn = (Date % 10000)//100
 	dy = Date % 100
