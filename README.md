@@ -25,8 +25,14 @@ import PlanetSpice as ps
 
 where `ps` currently contains the following submodules:
 
+[`Sun`](PlanetSpice/Sun/README.md)
+
 [`Mercury`](PlanetSpice/Mercury/README.md)
 
+[`Venus`](PlanetSpice/Venus/README.md)
 
+[`Earth`](PlanetSpice/Earth/README.md)
+
+[`Mars`](PlanetSpice/Mercury/README.md)
 
  
