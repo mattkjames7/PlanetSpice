@@ -8,11 +8,31 @@ import PyFileIO as pf
 from ..Tools.ListDates import ListDates
 import DateTimeTools as TT
 from ..Tools.ContUT import ContUT
+import RecarrayTools as RT
+
 
 lsk_path = Globals.SpicePath + '/lsk/naif0010.tls'
 spk_kernel = Globals.SpicePath + '/bodies/de432s.bsp'
 pck_kernel = Globals.SpicePath + '/bodies/pck00010.tpc'
 hci_kernel = Globals.SpicePath + '/frames/tk/sunframes.tk'
+
+
+#a common dtype used for storing position
+dtype = [	('Date','int32'),
+			('ut','float32'),
+			('utc','float64'),
+			('xHCI','float64'),
+			('yHCI','float64'),
+			('zHCI','float64'),
+			('xIAU_SUN','float64'),
+			('yIAU_SUN','float64'),
+			('zIAU_SUN','float64'),
+			('Rsun','float64'),
+			('LatHCI','float32'),
+			('LonHCI','float32'),
+			('LatIAU_SUN','float32'),
+			('LonIAU_SUN','float32')]
+
 
 #carrington rot dtype
 dtypecarr = [	('Date','int32'),
@@ -54,6 +74,7 @@ def PosHCI(Date,ut):
 			
 	#get the positions
 	pos,lt = sp.spkpos('EARTH',et,'HCI','NONE','SUN')
+	pos = np.array(pos)
 	x = pos.T[0]
 	y = pos.T[1]
 	z = pos.T[2]	
@@ -241,3 +262,131 @@ def ReadCarringtonRotations():
 	fname = path + '0long.dat'
 	
 	return pf.ReadASCIIData(fname,Header=False,dtype=dtypecarr)
+
+
+def PosIAU_SUN(Date,ut):
+	'''
+	Get Earth's position in IAU_SUN coordinates, wher Z is along the 
+	Sun's rotational axis, X and Y rotate with the Sun.
+	
+	'''
+	#get output arrays
+	n = np.size(ut)
+	if np.size(ut) == 1:
+		ut = np.array([ut])
+	et = np.zeros((n,),dtype='float64')
+	x = np.zeros(n,dtype='float64')
+	y = np.zeros(n,dtype='float64')
+	z = np.zeros(n,dtype='float64')
+		
+	#load kernels
+	sp.furnsh(lsk_path)
+	sp.furnsh(spk_kernel)
+	sp.furnsh(pck_kernel)
+	sp.furnsh(hci_kernel)	
+	
+	#do each unique date to speed things up
+	if np.size(Date) == 1 :
+		et[0] = utc2et(Date,0.0)
+		et = et[0] + ut*3600.0
+	else:
+		ud = np.unique(Date)
+		for i in range(0,ud.size):
+			use = np.where(Date == ud[i])[0]
+			tmp = utc2et(ud[i],0.0)
+			et[use] = tmp + ut[use]*3600.0
+
+	#get the positions
+	pos,lt = sp.spkpos('EARTH',et,'IAU_SUN','NONE','SUN')
+	pos = np.array(pos)
+	x = pos.T[0]
+	y = pos.T[1]
+	z = pos.T[2]	
+	
+	#unload kernels	
+	sp.unload(lsk_path)
+	sp.unload(spk_kernel)
+	sp.unload(pck_kernel)
+	sp.unload(hci_kernel)
+
+	return (x,y,z)
+
+
+def SavePos(Date0=19500101,Date1=20500101):
+	'''
+	Save Earth's position for every date between date0 and date1
+	'''
+	outpath = Globals.OutputPath + 'Earth/EarthPos/'
+	if not os.path.isdir(outpath):
+		os.system('mkdir -pv '+outpath)
+
+	
+	date = Date0
+	ut = np.arange(24.0)
+	while date <= Date1:
+		print('Saving date {:d}'.format(date))
+		fname = outpath + '{:08d}.bin'.format(date)
+		
+		#calculate the postions
+		x,y,z = PosHCI(date,ut)
+		x2,y2,z2 = PosIAU_SUN(date,ut)
+		
+		#create the output array
+		data = np.recarray(24,dtype=dtype)
+		
+		#fill it
+		data.Date = date
+		data.ut = ut
+		data.utc = ContUT(data.Date,data.ut)
+		
+		data.xHCI = x
+		data.yHCI = y
+		data.zHCI = z
+		data.xIAU_SUN = x2
+		data.yIAU_SUN = y2
+		data.zIAU_SUN = z2
+		
+		#calculate some things
+		data.Rsun = np.sqrt(x**2 + y**2 + z**2)
+		xyHCI = np.sqrt(data.xHCI**2 + data.yHCI**2)
+		xyIAU_SUN = np.sqrt(data.xIAU_SUN**2 + data.yIAU_SUN**2)
+		data.LatHCI = np.arctan2(data.zHCI,xyHCI)*180.0/np.pi
+		data.LonHCI = np.arctan2(data.yHCI,data.xHCI)*180.0/np.pi
+		data.LatIAU_SUN = np.arctan2(data.zIAU_SUN,xyIAU_SUN)*180.0/np.pi
+		data.LonIAU_SUN = np.arctan2(data.yIAU_SUN,data.xIAU_SUN)*180.0/np.pi		
+		
+		#save file
+		RT.SaveRecarray(data,fname)
+		
+		#update date
+		date = TT.PlusDay(date)
+		
+		
+
+def ReadPosDate(Date):
+	outpath = Globals.OutputPath + 'Earth/EarthPos/'
+	fname = outpath + '{:08d}.bin'.format(date)
+	return RT.ReadRecarray(fname,dtype)
+	
+def ReadPos(Date0,Date1):
+	
+	Dates = ListDates(Date0,Date1)
+	
+	path = Globals.OutputPath + 'Earth/EarthPos/'
+	for i in range(0,nd):
+		fname = path + '{:08d}.bin'.format(Dates[i])
+		f = open(fname,'rb')
+		n += np.fromfile(f,dtype='int32',count=1)
+		f.close()
+
+	out = np.recarray(n,dtype=dtype)
+	
+	p = 0
+	for i in range(0,nd):
+		print('\rReading Date {:08d} ({:05.1f}%)'.format(Dates[i],100.0*np.float(i+1)/nd), end=' ')
+		tmp = ReadPosDate(Dates[i])
+		out[p:p+tmp.size] = tmp
+		p += tmp.size
+	print('')
+	
+	return out
