@@ -38,7 +38,7 @@ dtype = [	('Date','int32'),
 dtypecarr = [	('Date','int32'),
 				('ut','float32'),
 				('utc','float64')]
-
+AU = 1.496e8
 
 def PosHCI(Date,ut):
 	'''
@@ -341,15 +341,15 @@ def SavePos(Date0=19500101,Date1=20500101):
 		data.ut = ut
 		data.utc = ContUT(data.Date,data.ut)
 		
-		data.xHCI = x
-		data.yHCI = y
-		data.zHCI = z
-		data.xIAU_SUN = x2
-		data.yIAU_SUN = y2
-		data.zIAU_SUN = z2
+		data.xHCI = x/AU
+		data.yHCI = y/AU
+		data.zHCI = z/AU
+		data.xIAU_SUN = x2/AU
+		data.yIAU_SUN = y2/AU
+		data.zIAU_SUN = z2/AU
 		
 		#calculate some things
-		data.Rsun = np.sqrt(x**2 + y**2 + z**2)
+		data.Rsun = np.sqrt(x**2 + y**2 + z**2)/AU
 		xyHCI = np.sqrt(data.xHCI**2 + data.yHCI**2)
 		xyIAU_SUN = np.sqrt(data.xIAU_SUN**2 + data.yIAU_SUN**2)
 		data.LatHCI = np.arctan2(data.zHCI,xyHCI)*180.0/np.pi
@@ -367,19 +367,26 @@ def SavePos(Date0=19500101,Date1=20500101):
 
 def ReadPosDate(Date):
 	outpath = Globals.OutputPath + 'Venus/VenusPos/'
-	fname = outpath + '{:08d}.bin'.format(date)
+	fname = outpath + '{:08d}.bin'.format(Date)
+	if not os.path.isfile(fname):
+		return np.recarray(0,dtype=dtype)
 	return RT.ReadRecarray(fname,dtype)
 	
 def ReadPos(Date0,Date1):
 	
 	Dates = ListDates(Date0,Date1)
+	nd = Dates.size
 	
+	n = 0
 	path = Globals.OutputPath + 'Venus/VenusPos/'
 	for i in range(0,nd):
+		print('\rCounting records: {:d}'.format(n),end='')
 		fname = path + '{:08d}.bin'.format(Dates[i])
-		f = open(fname,'rb')
-		n += np.fromfile(f,dtype='int32',count=1)
-		f.close()
+		if os.path.isfile(fname):
+			f = open(fname,'rb')
+			n += np.fromfile(f,dtype='int32',count=1)[0]
+			f.close()
+	print('\rCounting records: {:d}'.format(n))
 
 	out = np.recarray(n,dtype=dtype)
 	
@@ -392,3 +399,25 @@ def ReadPos(Date0,Date1):
 	print('')
 	
 	return out
+
+
+
+def CombinePos(Date0=19500101,Date1=20500101):
+	data = ReadPos(Date0,Date1)
+	fname = Globals.OutputPath + 'Venus/VenusPos.bin'
+	RT.SaveRecarray(data,fname) 
+	
+
+def ReadCombinedPos(Small=True):
+	if Small:
+		fname = Globals.OutputPath + 'Venus/VenusPosSmall.bin'
+	else:
+		fname = Globals.OutputPath + 'Venus/VenusPos.bin'
+	return RT.ReadRecarray(fname,dtype)
+	
+def CombinePosSmall():
+	fname = Globals.OutputPath + 'Venus/VenusPosSmall.bin'
+	data = ReadCombinedPos(False)
+	ud = np.unique(data.Date)
+	ind = np.arange(ud.size) * 24
+	RT.SaveRecarray(data[ind],fname)

@@ -37,6 +37,9 @@ dtypecarr = [	('Date','int32'),
 				('ut','float32'),
 				('utc','float64')]
 
+AU = 1.496e8
+
+
 def PosHCIDates(Date0,Date1):
 	'''
 	Get the postion of Mercury in HCI coordinates between two dates
@@ -199,6 +202,22 @@ def Speed(Date):
 	s = np.sqrt((x1 - x0)**2 + (y1 - y0)**2 + (z1 - z0)**2)
 	return (s/0.1)/3600.0
 
+
+def SaveSpeed(Date0=19500101,Date1=20500101):
+
+	Dates = ListDates(Date0,Date1)
+	ut = np.zeros(Dates.size,dtype='float32')
+	s = Speed(Dates)
+	
+	sdtype = [('Date','int32'),('utc','float64'),('v','float32')]
+	data = np.recarray(Dates.size,dtype=sdtype)
+	data.Date = Dates
+	data.utc = ContUT(data.Date,np.zeros(data.size))
+	data.v = s
+	
+	fname = Globals.OutputPath + 'Mercury/MercurySpeed.dat'
+	pf.WriteASCIIData(fname,data)
+
 def AberrationAngle(Date,Vsw=400.0):
 	'''
 	A possibly bad estimate of the aberration angle
@@ -323,15 +342,15 @@ def SavePos(Date0=19500101,Date1=20500101):
 		data.ut = ut
 		data.utc = ContUT(data.Date,data.ut)
 		
-		data.xHCI = x
-		data.yHCI = y
-		data.zHCI = z
-		data.xIAU_SUN = x2
-		data.yIAU_SUN = y2
-		data.zIAU_SUN = z2
+		data.xHCI = x/AU
+		data.yHCI = y/AU
+		data.zHCI = z/AU
+		data.xIAU_SUN = x2/AU
+		data.yIAU_SUN = y2/AU
+		data.zIAU_SUN = z2/AU
 		
 		#calculate some things
-		data.Rsun = np.sqrt(x**2 + y**2 + z**2)
+		data.Rsun = np.sqrt(x**2 + y**2 + z**2)/AU
 		xyHCI = np.sqrt(data.xHCI**2 + data.yHCI**2)
 		xyIAU_SUN = np.sqrt(data.xIAU_SUN**2 + data.yIAU_SUN**2)
 		data.LatHCI = np.arctan2(data.zHCI,xyHCI)*180.0/np.pi
@@ -349,20 +368,27 @@ def SavePos(Date0=19500101,Date1=20500101):
 
 def ReadPosDate(Date):
 	outpath = Globals.OutputPath + 'Mercury/MercuryPos/'
-	fname = outpath + '{:08d}.bin'.format(date)
+	fname = outpath + '{:08d}.bin'.format(Date)
+	if not os.path.isfile(fname):
+		return np.recarray(0,dtype=dtype)
 	return RT.ReadRecarray(fname,dtype)
 	
 def ReadPos(Date0,Date1):
 	
 	Dates = ListDates(Date0,Date1)
+	nd = Dates.size
 	
+	n = 0
 	path = Globals.OutputPath + 'Mercury/MercuryPos/'
 	for i in range(0,nd):
+		print('\rCounting records: {:d}'.format(n),end='')
 		fname = path + '{:08d}.bin'.format(Dates[i])
-		f = open(fname,'rb')
-		n += np.fromfile(f,dtype='int32',count=1)
-		f.close()
-
+		if os.path.isfile(fname):
+			f = open(fname,'rb')
+			n += np.fromfile(f,dtype='int32',count=1)[0]
+			f.close()
+	print('\rCounting records: {:d}'.format(n))
+	
 	out = np.recarray(n,dtype=dtype)
 	
 	p = 0
@@ -375,3 +401,22 @@ def ReadPos(Date0,Date1):
 	
 	return out
 
+
+def CombinePos(Date0=19500101,Date1=20500101):
+	data = ReadPos(Date0,Date1)
+	fname = Globals.OutputPath + 'Mercury/MercuryPos.bin'
+	RT.SaveRecarray(data,fname) 
+
+def ReadCombinedPos(Small=True):
+	if Small:
+		fname = Globals.OutputPath + 'Mercury/MercuryPosSmall.bin'
+	else:
+		fname = Globals.OutputPath + 'Mercury/MercuryPos.bin'
+	return RT.ReadRecarray(fname,dtype)
+	
+def CombinePosSmall():
+	fname = Globals.OutputPath + 'Mercury/MercuryPosSmall.bin'
+	data = ReadCombinedPos(False)
+	ud = np.unique(data.Date)
+	ind = np.arange(ud.size) * 24
+	RT.SaveRecarray(data[ind],fname)

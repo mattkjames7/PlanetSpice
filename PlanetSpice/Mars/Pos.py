@@ -37,7 +37,7 @@ dtype = [	('Date','int32'),
 dtypecarr = [	('Date','int32'),
 				('ut','float32'),
 				('utc','float64')]
-
+AU = 1.496e8
 
 def PosHCI(Date,ut):
 	'''
@@ -339,12 +339,12 @@ def SavePos(Date0=19500101,Date1=20500101):
 		data.ut = ut
 		data.utc = ContUT(data.Date,data.ut)
 		
-		data.xHCI = x
-		data.yHCI = y
-		data.zHCI = z
-		data.xIAU_SUN = x2
-		data.yIAU_SUN = y2
-		data.zIAU_SUN = z2
+		data.xHCI = x/AU
+		data.yHCI = y/AU
+		data.zHCI = z/AU
+		data.xIAU_SUN = x2/AU
+		data.yIAU_SUN = y2/AU
+		data.zIAU_SUN = z2/AU
 		
 		#calculate some things
 		data.Rsun = np.sqrt(x**2 + y**2 + z**2)
@@ -365,19 +365,26 @@ def SavePos(Date0=19500101,Date1=20500101):
 
 def ReadPosDate(Date):
 	outpath = Globals.OutputPath + 'Mars/MarsPos/'
-	fname = outpath + '{:08d}.bin'.format(date)
+	fname = outpath + '{:08d}.bin'.format(Date)
+	if not os.path.isfile(fname):
+		return np.recarray(0,dtype=dtype)
 	return RT.ReadRecarray(fname,dtype)
 	
 def ReadPos(Date0,Date1):
 	
 	Dates = ListDates(Date0,Date1)
+	nd = Dates.size
 	
+	n = 0
 	path = Globals.OutputPath + 'Mars/MarsPos/'
 	for i in range(0,nd):
+		print('\rCounting records: {:d}'.format(n),end='')
 		fname = path + '{:08d}.bin'.format(Dates[i])
-		f = open(fname,'rb')
-		n += np.fromfile(f,dtype='int32',count=1)
-		f.close()
+		if os.path.isfile(fname):
+			f = open(fname,'rb')
+			n += np.fromfile(f,dtype='int32',count=1)[0]
+			f.close()
+	print('\rCounting records: {:d}'.format(n))
 
 	out = np.recarray(n,dtype=dtype)
 	
@@ -390,3 +397,23 @@ def ReadPos(Date0,Date1):
 	print('')
 	
 	return out
+	
+def CombinePos(Date0=19500101,Date1=20500101):
+	data = ReadPos(Date0,Date1)
+	fname = Globals.OutputPath + 'Mars/MarsPos.bin'
+	RT.SaveRecarray(data,fname) 
+
+
+def ReadCombinedPos(Small=True):
+	if Small:
+		fname = Globals.OutputPath + 'Mars/MarsPosSmall.bin'
+	else:
+		fname = Globals.OutputPath + 'Mars/MarsPos.bin'
+	return RT.ReadRecarray(fname,dtype)
+	
+def CombinePosSmall():
+	fname = Globals.OutputPath + 'Mars/MarsPosSmall.bin'
+	data = ReadCombinedPos(False)
+	ud = np.unique(data.Date)
+	ind = np.arange(ud.size) * 24
+	RT.SaveRecarray(data[ind],fname)
