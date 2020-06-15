@@ -7,6 +7,8 @@ import DateTimeTools as TT
 from ...Tools.FileSearch import FileSearch
 from ...Tools.ContUT import ContUT
 from ... import Globals
+from ...Tools.ListDates import ListDates
+import RecarrayTools as RT
 
 lsk_path = Globals.SpicePath + '/lsk/naif0010.tls'
 spk_kernel = Globals.SpicePath + '/bodies/de432s.bsp'
@@ -458,14 +460,21 @@ def HAELon(Date,ut):
 
 def SaveMinutePos():
 	path = Globals.OutputPath + 'Mercury/MESSENGER/MinutePos/'
-	StartDate = 20110323
-	EndDate = 20150431
+	if not os.path.isdir(path):
+		os.system('mkdir -pv '+path)
 	
-	date = StartDate
+	Dates0 = ListDates(20080111,20080117)
+	Dates1 = ListDates(20081003,20081009)
+	Dates2 = ListDates(20090926,20090930)
+	Dates3 = ListDates(20110323,20150431)
+	
+	Dates = np.concatenate((Dates0,Dates1,Dates2,Dates3))
+	
 	ut = np.arange(1440.0)/60.0
-	while date <= EndDate:
-		fname = path + '{:08d}.bin'.format(date)
-		x,y,z = MessPosMSM(date,ut)
+	for Date in Dates:
+		print('Date: {:d}'.format(Date))
+		fname = path + '{:08d}.bin'.format(Date)
+		x,y,z = PosMSM(Date,ut)
 		
 		data = np.recarray(1440,dtype=dtype)
 		data.Date = Date
@@ -477,4 +486,35 @@ def SaveMinutePos():
 		
 		RT.SaveRecarray(data,fname)
 		
-		date = TT.PlusDay(date)
+def ReadMinutePos(Date):
+	path = Globals.OutputPath + 'Mercury/MESSENGER/MinutePos/'
+	fname = path + '{:08d}.bin'.format(Date)
+	
+	return RT.ReadRecarray(fname,dtype)
+		
+def CombineMinutePos(Half=True):
+	fname = Globals.OutputPath + 'Mercury/MESSENGER/MinutePos.bin'
+
+	
+	Dates0 = ListDates(20080111,20080117)
+	Dates1 = ListDates(20081003,20081009)
+	Dates2 = ListDates(20090926,20090930)
+	Dates3 = ListDates(20110323,20150430)
+	
+	Dates = np.concatenate((Dates0,Dates1,Dates2,Dates3))		
+	
+	n = 1440*Dates.size
+	data = np.recarray(n,dtype=dtype)
+	
+	p = 0
+	for Date in Dates:
+		print('Date: {:d}'.format(Date))	
+		tmp = ReadMinutePos(Date)
+		data[p:p+1440] = tmp
+		p += 1440
+	
+	if Half:
+		ind = np.arange(data.size//2)*2
+		data = data[ind]
+	
+	RT.SaveRecarray(data,fname)
