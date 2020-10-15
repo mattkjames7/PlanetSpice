@@ -20,15 +20,15 @@ def ListVenusSPK(Date):
 	
 	'''
 	if np.size(Date) == 1:
-		yymm = np.array([(Date%1000000)/100])
+		yymm = np.array([(Date%1000000)//100])
 	else:
-		yymm = np.array((Date%1000000)/100)
+		yymm = np.array((Date%1000000)//100)
 	
 	yymm = np.unique(yymm)
 	
-	yy = yymm/100
+	yy = yymm//100
 	mm = yymm%100
-	
+
 	#pad with an extra month either side
 	if mm[0] > 1:
 		mm = np.append(mm[0]-1,mm)
@@ -55,7 +55,7 @@ def ListVenusSPK(Date):
 	#now search for files
 	n = np.size(yymm)
 	path =  Globals.SpicePath + '/VEX/spk/'
-	files = np.zeros(n,dtype='S59')
+	files = np.zeros(n,dtype='object')
 	for i in range(0,n):
 		tmp = FileSearch(path,'*{:012d}*.BSP'.format(yymmdd[i]))
 		files[i] = path + tmp[0]
@@ -130,11 +130,12 @@ def PosHCI(Date,ut):
 	#load the relevant kernels
 	sp.furnsh(lsk_path)
 	sp.furnsh(spk_kernel)
-	VEXspk = ListVenusSPK(date)
+	VEXspk = ListVenusSPK(Date)
 	for vk in VEXspk:
 		sp.furnsh(vk)
 	sp.furnsh(pck_kernel)
 	sp.furnsh(vso_kernel)	
+	sp.furnsh(hci_kernel)	
 	
 	#do each unique date to speed things up
 	if np.size(Date) == 1 :
@@ -149,6 +150,7 @@ def PosHCI(Date,ut):
 			
 	#get the positions for each date/time
 	pos,lt = sp.spkpos('VEX',et,'HCI','NONE','SUN')
+	pos = np.array(pos)
 	x = pos.T[0]
 	y = pos.T[1]
 	z = pos.T[2]		
@@ -160,6 +162,7 @@ def PosHCI(Date,ut):
 		sp.unload(vk)
 	sp.unload(pck_kernel)
 	sp.unload(vso_kernel)
+	sp.unload(hci_kernel)	
 
 	return (x,y,z)
 
@@ -196,7 +199,8 @@ def CarringtonLongitude(Date,ut):
 	
 	#get the longitudes
 	pos,lt = sp.spkpos('VEX',et,'IAU_SUN','NONE','SUN')
-	lon = np.arctan2(pos.T[1],pos.T[0])
+	pos = np.array(pos)
+	lon = np.arctan2(pos.T[1],pos.T[0])*180/np.pi
 	
 	#unload kernels
 	sp.unload(lsk_path)

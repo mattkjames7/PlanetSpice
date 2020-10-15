@@ -32,7 +32,7 @@ def utc2et(Date,ut):
 	yr = Date//10000
 	mn = (Date % 10000)//100
 	dy = Date % 100
-	hh,mm,ss,ms = TT.DectoHHMM(ut,ss=True,ms=True,Split=True)
+	hh,mm,ss,ms = TT.DectoHHMM(ut)
 	ss = np.float32(ss) + np.float32(ms)/1000
 	
 	#create an array of strings
