@@ -19,13 +19,14 @@ def ListVenusSPK(Date):
 	Lists the kernels for VEX
 	
 	'''
+	print(Date)
 	if np.size(Date) == 1:
 		yymm = np.array([(Date%1000000)//100])
 	else:
 		yymm = np.array((Date%1000000)//100)
 	
 	yymm = np.unique(yymm)
-	
+	print(yymm)
 	yy = yymm//100
 	mm = yymm%100
 
@@ -59,7 +60,7 @@ def ListVenusSPK(Date):
 	for i in range(0,n):
 		tmp = FileSearch(path,'*{:012d}*.BSP'.format(yymmdd[i]))
 		files[i] = path + tmp[0]
-	
+	print(files)
 	return files
 
 
@@ -183,6 +184,9 @@ def CarringtonLongitude(Date,ut):
 	#load kernels
 	sp.furnsh(lsk_path)
 	sp.furnsh(spk_kernel)
+	VEXspk = ListVenusSPK(Date)
+	for vk in VEXspk:
+		sp.furnsh(vk)
 	sp.furnsh(pck_kernel)
 	sp.furnsh(hci_kernel)	
 	
@@ -205,6 +209,8 @@ def CarringtonLongitude(Date,ut):
 	#unload kernels
 	sp.unload(lsk_path)
 	sp.unload(spk_kernel)
+	for vk in VEXspk:
+		sp.furnsh(vk)
 	sp.unload(pck_kernel)	
 	sp.unload(hci_kernel)	
 
