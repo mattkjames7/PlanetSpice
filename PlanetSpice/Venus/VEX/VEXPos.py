@@ -19,14 +19,12 @@ def ListVenusSPK(Date):
 	Lists the kernels for VEX
 	
 	'''
-	print(Date)
 	if np.size(Date) == 1:
 		yymm = np.array([(Date%1000000)//100])
 	else:
 		yymm = np.array((Date%1000000)//100)
 	
 	yymm = np.unique(yymm)
-	print(yymm)
 	yy = yymm//100
 	mm = yymm%100
 
@@ -60,7 +58,7 @@ def ListVenusSPK(Date):
 	for i in range(0,n):
 		tmp = FileSearch(path,'*{:012d}*.BSP'.format(yymmdd[i]))
 		files[i] = path + tmp[0]
-	print(files)
+
 	return files
 
 
