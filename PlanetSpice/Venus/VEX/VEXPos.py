@@ -79,7 +79,7 @@ def PosVSO(Date,ut):
 	#load the relevant kernels
 	sp.furnsh(lsk_path)
 	sp.furnsh(spk_kernel)
-	VEXspk = ListVenusSPK(date)
+	VEXspk = ListVenusSPK(Date)
 	for vk in VEXspk:
 		sp.furnsh(vk)
 	sp.furnsh(pck_kernel)
@@ -208,7 +208,7 @@ def CarringtonLongitude(Date,ut):
 	sp.unload(lsk_path)
 	sp.unload(spk_kernel)
 	for vk in VEXspk:
-		sp.furnsh(vk)
+		sp.unload(vk)
 	sp.unload(pck_kernel)	
 	sp.unload(hci_kernel)	
 
