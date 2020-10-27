@@ -245,6 +245,7 @@ def CarringtonLongitude(Date,ut):
 	
 	#get the longitudes
 	pos,lt = sp.spkpos('EARTH',et,'IAU_SUN','NONE','SUN')
+	pos = np.array(pos)
 	lon = np.arctan2(pos.T[1],pos.T[0])
 	
 	#unload kernels

@@ -351,12 +351,13 @@ def PosHCI(Date,ut):
 			tmp = utc2et(ud[i],0.0)
 			et[use] = tmp + ut[use]*3600.0
 			
-	for i in range(0,n):
-		pos,lt = sp.spkpos('MESSENGER',et[i],'HCI','NONE','SUN')
-		x[i] = pos[0]
-		y[i] = pos[1]
-		z[i] = pos[2]		
-	
+	#get the positions for each date/time
+	pos,lt = sp.spkpos('MESSENGER',et,'HCI','NONE','SUN')
+	pos = np.array(pos)
+	x = pos.T[0]
+	y = pos.T[1]
+	z = pos.T[2]	
+
 	sp.unload(lsk_path)
 	sp.unload(spk_kernel)
 	sp.unload(spk_kernel2)
@@ -391,9 +392,10 @@ def CarringtonLongitude(Date,ut):
 			tmp = utc2et(ud[i],0.0)
 			et[use] = tmp + ut[use]*3600.0
 			
-	for i in range(0,n):
-		pos,lt = sp.spkpos('MESSENGER',et[i],'IAU_SUN','NONE','SUN')
-		lon[i] = np.arctan2(pos[1],pos[0])
+	pos,lt = sp.spkpos('MESSENGER',et,'IAU_SUN','NONE','SUN')
+	pos = np.array(pos)
+	lon = np.arctan2(pos.T[1],pos.T[0])*180/np.pi
+
 	
 	sp.unload(lsk_path)
 	sp.unload(spk_kernel)
